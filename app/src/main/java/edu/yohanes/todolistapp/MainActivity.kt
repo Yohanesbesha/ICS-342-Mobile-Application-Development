@@ -35,6 +35,7 @@ val placeholderTodos = listOf(
     TodoItem("ICS 340", true),
     TodoItem("ICS 365", true),
     TodoItem("ICS 372", true),
+    TodoItem("MATH 315", true),
     TodoItem("ICS 342", true),
     TodoItem("ICS 440", true),
     TodoItem("ICS 462", true),
