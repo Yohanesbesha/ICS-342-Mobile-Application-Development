@@ -1,10 +1,28 @@
 <resources>
     <string name="app_name">TodoListApp</string>
-    <string name="todo_list_title">Todo</string>
     <string name="new_todo">New Todo</string>
-    <string name="add">Add</string>
+    <string name="clear_text">Clear Text</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
-    <string name="clear_text">Clear Text</string>
-    <string name="enter_todo_error">Please enter a todo item.</string>
+    <string name="todo">Todo</string>
+    <string name="add">Add</string>
+    <string name="okay">Okay</string>
+    <string name="error">Error</string>
+    <string name="blank_error_message">CAN NOT BE BLANK cannot be blank.</string>
+    <string name="login">Log In</string>
+    <string name="create_account">Create an Account</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login_button">Log In</string>
+    <string name="create_account_button">Create an Account</string>
+    <string name="empty_fields_error">FIELDS CAN NOT BE EMPTY.</string>
+    <string name="create_account_empty_fields_error">FIELDS CAN NOT BE EMPTY.</string>
+    <string name="account_creation_error">ERROR CREATING ACCOUNT: </string>
+    <string name="account_creation_success">SUCCESSFUL!</string>
+    <string name="success">Success</string>
+    <string name="name">Name</string>
+    <string name="loginFailed">LOGIN FAILED PLEASE TRY AGAIN.</string>
+    <string name="failedLoadTodos">FAILED TO GET TODOS: </string>
+    <string name="failedAddTodo"> FAILED TO ADD TODOS: </string>
+    <string name="failedUpdatedCheck">UPDATE NOT SUCCESSFUL: </string>
 </resources>

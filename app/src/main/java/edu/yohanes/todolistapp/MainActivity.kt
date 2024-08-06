@@ -3,141 +3,156 @@ package edu.yohanes.todolistapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import edu.yohanes.todolistapp.data.TodoItem
 import edu.yohanes.todolistapp.ui.theme.TodoListAppTheme
-import kotlinx.coroutines.launch
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.saveable.rememberSaveable
-
-// Data class to store todo item information
-data class TodoItem(val text: String, var isChecked: Boolean)
-
-// Placeholder data for todo items
-val placeholderTodos = listOf(
-    TodoItem("ICS 140", true),
-    TodoItem("ICS 141", true),
-    TodoItem("ICS 232", true),
-    TodoItem("ICS 240", true),
-    TodoItem("ICS 311", true),
-    TodoItem("ICS 340", true),
-    TodoItem("ICS 365", true),
-    TodoItem("ICS 372", true),
-    TodoItem("MATH 315", true),
-    TodoItem("ICS 342", true),
-    TodoItem("ICS 440", true),
-    TodoItem("ICS 462", true),
-    TodoItem("ICS 460", false),
-    TodoItem("ICS ICS 499", false),
-
-)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val sharedPreferencesHelper = SharedPreferencesHelper(this)
+        val apiService = Retrofit.todoApiService
+        val loginViewModel = LoginViewModel(sharedPreferencesHelper, apiService, this)
+        val createAccountViewModel = CreateAccountViewModel(sharedPreferencesHelper, apiService, this)
+        val mainViewModel = ViewModelFactories(sharedPreferencesHelper, apiService, this)
+
         setContent {
-            TodoListApp()
+            TodoListAppTheme {
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "LoginScreen") {
+                    composable("LoginScreen") {
+                        LoginScreen(
+                            onLoginSuccess = { navController.navigate("ToDoListScreen") },
+                            onCreateAccountClick = { navController.navigate("CreateAccountScreen") },
+                            viewModel = loginViewModel
+                        )
+                    }
+                    composable("ToDoListScreen") {
+                        mainViewModel.loadTodos()
+                        ToDoListScreen(mainViewModel)
+                    }
+                    composable("CreateAccountScreen") {
+                        CreateAccountScreen(
+                            onCreateAccountSuccess = { navController.navigate("ToDoListScreen") },
+                            onLoginClick = { navController.navigate("LoginScreen") },
+                            viewModel = createAccountViewModel
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TodoListApp() {
-    TodoListAppTheme {
-        val sheetState = rememberModalBottomSheetState()
-        var isSheetOpen by rememberSaveable { mutableStateOf(false) }
+fun ToDoListScreen(viewModel: ViewModelFactories = viewModel()) {
+    val context = LocalContext.current
+    val toDoList by viewModel.todos.observeAsState(emptyList())
 
-        // Initialize todoItems with placeholder data
-        val todoItems = remember { mutableStateListOf(*placeholderTodos.toTypedArray()) }
+    var text by remember { mutableStateOf("") }
+    var isSheetOpen by rememberSaveable { mutableStateOf(false) }
+    val showError by viewModel.showError.observeAsState(false)
+    val errorMessage by viewModel.errorMessage.observeAsState("")
 
-        var text by remember { mutableStateOf("") }
-        var showError by remember { mutableStateOf(false) }
-        val coroutineScope = rememberCoroutineScope()
-
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    modifier = Modifier.padding(bottom = 12.dp),
-                    title = {
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            text = stringResource(id = R.string.todo_list_title)
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Gray
-                    ),
-                )
-            },
-            floatingActionButton = {
-                FloatingActionButton(onClick = { isSheetOpen = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.add_icon),
-                        contentDescription = stringResource(id = R.string.add)
-                    )
+    if (showError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onShowErrorChange(false) },
+            title = { Text(text = context.getString(R.string.error)) },
+            text = { Text(text = errorMessage) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onShowErrorChange(false) }) {
+                    Text(text = context.getString(R.string.okay))
                 }
             }
-        ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-                    // Displaying the list of todo items
-                    for (todo in todoItems) {
-                        TodoRow(todo, onCheckedChange = { isChecked ->
-                            val index = todoItems.indexOf(todo)
-                            todoItems[index] = todo.copy(isChecked = isChecked)
-                        })
-                    }
-                }
+        )
+    }
 
-                if (isSheetOpen) {
-                    ModalBottomSheet(
-                        sheetState = sheetState,
-                        onDismissRequest = { isSheetOpen = false }
-                    ) {
-                        BottomSheetContent(
-                            text = text,
-                            onTextChanged = { newText ->
-                                text = newText
-                                showError = false
-                            },
-                            onSave = {
-                                if (text.isEmpty()) {
-                                    showError = true
-                                } else {
-                                    todoItems.add(TodoItem(text, false))
-                                    text = ""
-                                    coroutineScope.launch {
-                                        isSheetOpen = false
-                                    }
-                                }
-                            },
-                            onCancel = {
-                                coroutineScope.launch {
-                                    isSheetOpen = false
-                                }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(context.getString(R.string.todo))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Gray
+                )
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { isSheetOpen = true }) {
+                Icon(Icons.Default.Add, contentDescription = context.getString(R.string.add))
+            }
+        }
+    ) { innerPadding ->
+        LazyColumn(modifier = Modifier.padding(innerPadding)) {
+            items(toDoList) { item ->
+                ItemView(content = item, onToggle = { viewModel.updateCheckBox(item) })
+            }
+        }
+
+        if (isSheetOpen) {
+            ModalBottomSheet(onDismissRequest = { isSheetOpen = false }) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        label = { Text(context.getString(R.string.new_todo)) },
+                        trailingIcon = {
+                            IconButton(onClick = { text = "" }) {
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = context.getString(R.string.clear_text))
                             }
-                        )
-                        if (showError) {
-                            Text(
-                                text = stringResource(id = R.string.enter_todo_error),
-                                color = Color.Red,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                        }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            if (text.isNotBlank()) {
+                                val todoItem = TodoItem("", text, false)
+                                viewModel.addTodo(todoItem)
+                                text = ""
+                                isSheetOpen = false
+                            } else {
+                                viewModel.onErrorMessage(context.getString(R.string.blank_error_message))
+                                viewModel.onShowErrorChange(true)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(context.getString(R.string.save))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = {
+                            isSheetOpen = false
+                            text = ""
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(context.getString(R.string.cancel))
                     }
                 }
             }
@@ -146,79 +161,191 @@ fun TodoListApp() {
 }
 
 @Composable
-fun TodoRow(todo: TodoItem, onCheckedChange: (Boolean) -> Unit) {
+fun ItemView(content: TodoItem, onToggle: () -> Unit) {
     Row(
         modifier = Modifier
-            .background(Color.Cyan)
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            todo.text,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier
-                .weight(1f)  // This pushes everything else to the right
-                .padding(start = 8.dp)
+            text = content.description,
+            modifier = Modifier.padding(start = 8.dp)
         )
-
         Checkbox(
-            checked = todo.isChecked,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.padding(end = 8.dp)
+            checked = content.completed,
+            onCheckedChange = { onToggle() }
         )
     }
 }
 
 @Composable
-fun BottomSheetContent(
-    text: String,
-    onTextChanged: (String) -> Unit,
-    onSave: () -> Unit,
-    onCancel: () -> Unit
+fun LoginScreen(
+    onLoginSuccess: () -> Unit,
+    onCreateAccountClick: () -> Unit,
+    viewModel: LoginViewModel = viewModel()
 ) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChanged,
-            label = { Text(stringResource(id = R.string.new_todo)) },
-            trailingIcon = {
-                IconButton(onClick = { onTextChanged("") }) {
-                    Icon(Icons.Outlined.Clear, contentDescription = stringResource(id = R.string.clear_text))
+    val context = LocalContext.current
+    val email by viewModel.email.observeAsState("")
+    val password by viewModel.password.observeAsState("")
+    val showError by viewModel.showError.observeAsState(false)
+    val errorMessage by viewModel.errorMessage.observeAsState("")
+
+    if (showError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onShowErrorChange(false) },
+            title = { Text(text = context.getString(R.string.error)) },
+            text = { Text(text = errorMessage) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onShowErrorChange(false) }) {
+                    Text(text = context.getString(R.string.okay))
                 }
-            },
-            singleLine = true,
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OutlinedTextField(
+            value = email,
+            onValueChange = { viewModel.onEmailChange(it) },
+            label = { Text(context.getString(R.string.email)) },
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = password,
+            onValueChange = { viewModel.onPasswordChange(it) },
+            label = { Text(context.getString(R.string.password)) },
+            modifier = Modifier.fillMaxWidth()
+        )
         Button(
-            onClick = onSave,
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(8.dp, 16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            )
+            onClick = {
+                if (email.isNotBlank() && password.isNotBlank()) {
+                    viewModel.login(onSuccess = onLoginSuccess, onError = { message ->
+                        viewModel.onErrorMessage(message)
+                        viewModel.onShowErrorChange(true)
+                    })
+                } else {
+                    viewModel.onErrorMessage(context.getString(R.string.empty_fields_error))
+                    viewModel.onShowErrorChange(true)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
         ) {
-            Text(stringResource(id = R.string.save))
+            Text(context.getString(R.string.login_button))
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(
-            onClick = onCancel,
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(8.dp, 16.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+        TextButton(
+            onClick = onCreateAccountClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
         ) {
-            Text(stringResource(id = R.string.cancel), color = MaterialTheme.colorScheme.primary)
+            Text(context.getString(R.string.create_account_button))
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun DefaultPreview() {
-    TodoListApp()
+fun CreateAccountScreen(
+    onCreateAccountSuccess: () -> Unit,
+    onLoginClick: () -> Unit,
+    viewModel: CreateAccountViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    val name by viewModel.name.observeAsState("")
+    val email by viewModel.email.observeAsState("")
+    val password by viewModel.password.observeAsState("")
+    val showError by viewModel.showError.observeAsState(false)
+    val errorMessage by viewModel.errorMessage.observeAsState("")
+    val showSuccess by viewModel.showSuccess.observeAsState(false)
+
+    if (showError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onShowErrorChange(false) },
+            title = { Text(text = context.getString(R.string.error)) },
+            text = { Text(text = errorMessage) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearError() }) {
+                    Text(text = context.getString(R.string.okay))
+                }
+            }
+        )
+    }
+
+    if (showSuccess) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearSuccess() },
+            title = { Text(text = context.getString(R.string.success)) },
+            text = { Text(context.getString(R.string.account_creation_success)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearSuccess()
+                    onCreateAccountSuccess()
+                }) {
+                    Text(text = context.getString(R.string.okay))
+                }
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = { viewModel.onNameChange(it) },
+            label = { Text(context.getString(R.string.name)) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = email,
+            onValueChange = { viewModel.onEmailChange(it) },
+            label = { Text(context.getString(R.string.email)) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = password,
+            onValueChange = { viewModel.onPasswordChange(it) },
+            label = { Text(context.getString(R.string.password)) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Button(
+            onClick = {
+                if (name.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
+                    viewModel.createAccount(onSuccess = { viewModel.onShowSuccessChange(true) }, onError = { message ->
+                        viewModel.onErrorMessage(message)
+                        viewModel.onShowErrorChange(true)
+                    })
+                } else {
+                    viewModel.onErrorMessage(context.getString(R.string.create_account_empty_fields_error))
+                    viewModel.onShowErrorChange(true)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+        ) {
+            Text(context.getString(R.string.create_account_button))
+        }
+        TextButton(
+            onClick = onLoginClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        ) {
+            Text(context.getString(R.string.login_button))
+        }
+    }
 }
