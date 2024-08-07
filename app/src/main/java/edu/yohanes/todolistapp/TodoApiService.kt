@@ -1,7 +1,7 @@
 package edu.yohanes.todolistapp
 
 import edu.yohanes.todolistapp.data.TodoItem
-import edu.yohanes.todolistapp.data.TodoItemReceiver
+import edu.yohanes.todolistapp.data.TodoItemResponse
 import edu.yohanes.todolistapp.data.User
 import edu.yohanes.todolistapp.data.UserResponse
 import retrofit2.http.*
@@ -13,7 +13,7 @@ interface TodoApiService {
         @Header("Authorization") bearerToken: String,
         @Path("user_id") userId: String,
         @Query("apikey") apiKey: String,
-    ): List<TodoItemReceiver>
+    ): List<TodoItemResponse>
 
     @POST("/api/users/{user_id}/todos")
     suspend fun createTodo(

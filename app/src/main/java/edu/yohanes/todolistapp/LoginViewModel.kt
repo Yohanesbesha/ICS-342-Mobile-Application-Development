@@ -9,56 +9,56 @@ import edu.yohanes.todolistapp.data.User
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val sharedPreferences: SharedPreferencesHelper,
+    private val sharedPreferences: SharedPref,
     private val todoApiService: TodoApiService,
     private val context: Context
 ) : ViewModel() {
     private val apiKey = "13c0f85d-69c5-41d6-81c5-9192362305aa"
 
-    private val _email = MutableLiveData("")
-    val email: LiveData<String> = _email
+    private val loginEmail = MutableLiveData("")
+    val email: LiveData<String> = loginEmail
 
-    private val _password = MutableLiveData("")
-    val password: LiveData<String> = _password
+    private val loginPassword = MutableLiveData("")
+    val password: LiveData<String> = loginPassword
 
-    private val _showError = MutableLiveData(false)
-    val showError: LiveData<Boolean> = _showError
+    private val loginError = MutableLiveData(false)
+    val showError: LiveData<Boolean> = loginError
 
-    private val _errorMessage = MutableLiveData("")
-    val errorMessage: LiveData<String> = _errorMessage
+    private val loginErrorPayload = MutableLiveData("")
+    val errorMessage: LiveData<String> = loginErrorPayload
 
-    fun onEmailChange(newEmail: String) {
-        _email.value = newEmail
+    fun updateEmail(newEmail: String) {
+        loginEmail.value = newEmail
     }
 
-    fun onPasswordChange(newPassword: String) {
-        _password.value = newPassword
+    fun updatePassword(newPassword: String) {
+        loginPassword.value = newPassword
     }
 
-    fun onShowErrorChange(showErrorChange: Boolean) {
-        _showError.value = showErrorChange
+    fun updateShowError(showErrorChange: Boolean) {
+        loginError.value = showErrorChange
     }
 
-    fun onErrorMessage(showErrorMessage: String) {
-        _errorMessage.value = showErrorMessage
+    fun errorPayload(showErrorMessage: String) {
+        loginErrorPayload.value = showErrorMessage
     }
 
     fun login(onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (_email.value.isNullOrBlank() || _password.value.isNullOrBlank()) {
-            _errorMessage.value = context.getString(R.string.empty_fields_error)
-            _showError.value = true
+        if (loginEmail.value.isNullOrBlank() || loginPassword.value.isNullOrBlank()) {
+            loginErrorPayload.value = context.getString(R.string.empty_fields_error)
+            loginError.value = true
             return
         }
 
         viewModelScope.launch {
             try {
-                val response = todoApiService.login(apiKey, User("", _email.value!!, _password.value!!))
+                val response = todoApiService.login(apiKey, User("", loginEmail.value!!, loginPassword.value!!))
                 sharedPreferences.saveUserinfo(response.userId)
                 sharedPreferences.saveToken(response.token)
                 onSuccess()
             } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.loginFailed)
-                _showError.value = true
+                loginErrorPayload.value = context.getString(R.string.loginFailed)
+                loginError.value = true
                 onError(context.getString(R.string.loginFailed))
             }
         }

@@ -20,10 +20,11 @@ data class User(
 @JsonClass(generateAdapter = true)
 data class UserResponse(
     @Json(name = "token") val token: String,
-    @Json(name = "id") val userId: String
+    @Json(name = "id") val userId: String,
+    @Json(name = "name") val name :String
 )
 
-data class TodoItemReceiver(
+data class TodoItemResponse(
     @Json(name = "id") val id: String,
     @Json(name = "description") val description: String,
     @Json(name = "completed") var completed: Int,

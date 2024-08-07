@@ -29,11 +29,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val sharedPreferencesHelper = SharedPreferencesHelper(this)
+        val sharedPref = SharedPref(this)
         val apiService = Retrofit.todoApiService
-        val loginViewModel = LoginViewModel(sharedPreferencesHelper, apiService, this)
-        val createAccountViewModel = CreateAccountViewModel(sharedPreferencesHelper, apiService, this)
-        val mainViewModel = ViewModelFactories(sharedPreferencesHelper, apiService, this)
+        val loginViewModel = LoginViewModel(sharedPref, apiService, this)
+        val createAccountViewModel = CreateAccountViewModel(sharedPref, apiService, this)
+        val mainViewModel = TodoListViewModel(sharedPref, apiService, this)
 
         setContent {
             TodoListAppTheme {
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToDoListScreen(viewModel: ViewModelFactories = viewModel()) {
+fun ToDoListScreen(viewModel: TodoListViewModel = viewModel()) {
     val context = LocalContext.current
     val toDoList by viewModel.todos.observeAsState(emptyList())
 
@@ -76,11 +76,11 @@ fun ToDoListScreen(viewModel: ViewModelFactories = viewModel()) {
 
     if (showError) {
         AlertDialog(
-            onDismissRequest = { viewModel.onShowErrorChange(false) },
+            onDismissRequest = { viewModel.displayUpdatedErrorLog(false) },
             title = { Text(text = context.getString(R.string.error)) },
             text = { Text(text = errorMessage) },
             confirmButton = {
-                TextButton(onClick = { viewModel.onShowErrorChange(false) }) {
+                TextButton(onClick = { viewModel.displayUpdatedErrorLog(false) }) {
                     Text(text = context.getString(R.string.okay))
                 }
             }
@@ -136,8 +136,8 @@ fun ToDoListScreen(viewModel: ViewModelFactories = viewModel()) {
                                 text = ""
                                 isSheetOpen = false
                             } else {
-                                viewModel.onErrorMessage(context.getString(R.string.blank_error_message))
-                                viewModel.onShowErrorChange(true)
+                                viewModel.errorContent(context.getString(R.string.blank_error_message))
+                                viewModel.displayUpdatedErrorLog(true)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -194,11 +194,11 @@ fun LoginScreen(
 
     if (showError) {
         AlertDialog(
-            onDismissRequest = { viewModel.onShowErrorChange(false) },
+            onDismissRequest = { viewModel.updateShowError(false) },
             title = { Text(text = context.getString(R.string.error)) },
             text = { Text(text = errorMessage) },
             confirmButton = {
-                TextButton(onClick = { viewModel.onShowErrorChange(false) }) {
+                TextButton(onClick = { viewModel.updateShowError(false) }) {
                     Text(text = context.getString(R.string.okay))
                 }
             }
@@ -214,13 +214,13 @@ fun LoginScreen(
     ) {
         OutlinedTextField(
             value = email,
-            onValueChange = { viewModel.onEmailChange(it) },
+            onValueChange = { viewModel.updateEmail(it) },
             label = { Text(context.getString(R.string.email)) },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = password,
-            onValueChange = { viewModel.onPasswordChange(it) },
+            onValueChange = { viewModel.updatePassword(it) },
             label = { Text(context.getString(R.string.password)) },
             modifier = Modifier.fillMaxWidth()
         )
@@ -228,12 +228,12 @@ fun LoginScreen(
             onClick = {
                 if (email.isNotBlank() && password.isNotBlank()) {
                     viewModel.login(onSuccess = onLoginSuccess, onError = { message ->
-                        viewModel.onErrorMessage(message)
-                        viewModel.onShowErrorChange(true)
+                        viewModel.errorPayload(message)
+                        viewModel.updateShowError(true)
                     })
                 } else {
-                    viewModel.onErrorMessage(context.getString(R.string.empty_fields_error))
-                    viewModel.onShowErrorChange(true)
+                    viewModel.errorPayload(context.getString(R.string.empty_fields_error))
+                    viewModel.updateShowError(true)
                 }
             },
             modifier = Modifier
@@ -269,11 +269,11 @@ fun CreateAccountScreen(
 
     if (showError) {
         AlertDialog(
-            onDismissRequest = { viewModel.onShowErrorChange(false) },
+            onDismissRequest = { viewModel.toggleErrorDisplay(false) },
             title = { Text(text = context.getString(R.string.error)) },
             text = { Text(text = errorMessage) },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearError() }) {
+                TextButton(onClick = { viewModel.clearErrorDisplay() }) {
                     Text(text = context.getString(R.string.okay))
                 }
             }
@@ -282,12 +282,12 @@ fun CreateAccountScreen(
 
     if (showSuccess) {
         AlertDialog(
-            onDismissRequest = { viewModel.clearSuccess() },
+            onDismissRequest = { viewModel.clearSuccessDisplay() },
             title = { Text(text = context.getString(R.string.success)) },
             text = { Text(context.getString(R.string.account_creation_success)) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.clearSuccess()
+                    viewModel.clearSuccessDisplay()
                     onCreateAccountSuccess()
                 }) {
                     Text(text = context.getString(R.string.okay))
@@ -305,32 +305,32 @@ fun CreateAccountScreen(
     ) {
         OutlinedTextField(
             value = name,
-            onValueChange = { viewModel.onNameChange(it) },
+            onValueChange = { viewModel.updateUsername(it) },
             label = { Text(context.getString(R.string.name)) },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = email,
-            onValueChange = { viewModel.onEmailChange(it) },
+            onValueChange = { viewModel.updateEmail(it) },
             label = { Text(context.getString(R.string.email)) },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = password,
-            onValueChange = { viewModel.onPasswordChange(it) },
+            onValueChange = { viewModel.updatePassword(it) },
             label = { Text(context.getString(R.string.password)) },
             modifier = Modifier.fillMaxWidth()
         )
         Button(
             onClick = {
                 if (name.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
-                    viewModel.createAccount(onSuccess = { viewModel.onShowSuccessChange(true) }, onError = { message ->
-                        viewModel.onErrorMessage(message)
-                        viewModel.onShowErrorChange(true)
+                    viewModel.createAccount(onSuccess = { viewModel.toggleSuccessDisplay(true) }, onError = { message ->
+                        viewModel.updateErrorText(message)
+                        viewModel.toggleErrorDisplay(true)
                     })
                 } else {
-                    viewModel.onErrorMessage(context.getString(R.string.create_account_empty_fields_error))
-                    viewModel.onShowErrorChange(true)
+                    viewModel.updateErrorText(context.getString(R.string.create_account_empty_fields_error))
+                    viewModel.toggleErrorDisplay(true)
                 }
             },
             modifier = Modifier

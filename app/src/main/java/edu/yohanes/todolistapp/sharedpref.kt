@@ -3,7 +3,8 @@ package edu.yohanes.todolistapp
 import android.content.Context
 import android.content.SharedPreferences
 
-interface PreferencesHelper {
+
+interface PreferHelper {
     fun saveUserinfo(userID: String)
     fun getUserID(): String?
     fun saveToken(token: String)
@@ -12,7 +13,7 @@ interface PreferencesHelper {
     fun getTodo_id(): String?
 }
 
-class SharedPreferencesHelper(context: Context) : PreferencesHelper {
+class SharedPref(context: Context) : PreferHelper {
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -43,4 +44,6 @@ class SharedPreferencesHelper(context: Context) : PreferencesHelper {
     override fun getTodo_id(): String? {
         return sharedPreferences.getString("todoID", null)
     }
+
+
 }

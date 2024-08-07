@@ -10,78 +10,78 @@ import edu.yohanes.todolistapp.data.User
 import kotlinx.coroutines.launch
 
 class CreateAccountViewModel(
-    private val sharedPreferences: SharedPreferencesHelper,
+    private val sharedPreferences: SharedPref,
     private val todoApiService: TodoApiService,
     @SuppressLint("StaticFieldLeak") private val context: Context
 ) : ViewModel() {
     private val apiKey = "13c0f85d-69c5-41d6-81c5-9192362305aa"
 
-    private val _name = MutableLiveData("")
-    val name: LiveData<String> = _name
+    private val userName = MutableLiveData("")
+    val name: LiveData<String> = userName
 
-    private val _email = MutableLiveData("")
-    val email: LiveData<String> = _email
+    private val userEmail = MutableLiveData("")
+    val email: LiveData<String> = userEmail
 
-    private val _password = MutableLiveData("")
-    val password: LiveData<String> = _password
+    private val userPassword = MutableLiveData("")
+    val password: LiveData<String> = userPassword
 
-    private val _showError = MutableLiveData(false)
-    val showError: LiveData<Boolean> = _showError
+    private val throwError = MutableLiveData(false)
+    val showError: LiveData<Boolean> = throwError
 
-    private val _errorMessage = MutableLiveData("")
-    val errorMessage: LiveData<String> = _errorMessage
+    private val errorPayload = MutableLiveData("")
+    val errorMessage: LiveData<String> = errorPayload
 
-    private val _showSuccess = MutableLiveData(false)
-    val showSuccess: LiveData<Boolean> = _showSuccess
+    private val successCase = MutableLiveData(false)
+    val showSuccess: LiveData<Boolean> = successCase
 
-    fun onNameChange(newName: String) {
-        _name.value = newName
+    fun updateUsername(newName: String) {
+        userName.value = newName
     }
 
-    fun onEmailChange(newEmail: String) {
-        _email.value = newEmail
+    fun updateEmail(newEmail: String) {
+        userEmail.value = newEmail
     }
 
-    fun onPasswordChange(newPassword: String) {
-        _password.value = newPassword
+    fun updatePassword(newPassword: String) {
+        userPassword.value = newPassword
     }
 
-    fun onShowErrorChange(showErrorChange: Boolean) {
-        _showError.value = showErrorChange
+    fun toggleErrorDisplay(showErrorChange: Boolean) {
+        throwError.value = showErrorChange
     }
 
-    fun onErrorMessage(showErrorMessage: String) {
-        _errorMessage.value = showErrorMessage
+    fun updateErrorText(showErrorMessage: String) {
+        errorPayload.value = showErrorMessage
     }
 
-    fun onShowSuccessChange(showSuccessChange: Boolean) {
-        _showSuccess.value = showSuccessChange
+    fun toggleSuccessDisplay(showSuccessChange: Boolean) {
+        successCase.value = showSuccessChange
     }
 
-    fun clearError() {
-        _showError.value = false
+    fun clearErrorDisplay() {
+        throwError.value = false
     }
 
-    fun clearSuccess() {
-        _showSuccess.value = false
+    fun clearSuccessDisplay() {
+        successCase.value = false
     }
 
     fun createAccount(onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (_email.value.isNullOrBlank() || _password.value.isNullOrBlank() || _name.value.isNullOrBlank()) {
-            _errorMessage.value = context.getString(R.string.create_account_empty_fields_error)
-            _showError.value = true
+        if (userEmail.value.isNullOrBlank() || userPassword.value.isNullOrBlank() || userName.value.isNullOrBlank()) {
+            errorPayload.value = context.getString(R.string.create_account_empty_fields_error)
+            throwError.value = true
             return
         }
 
         viewModelScope.launch {
             try {
-                val response = todoApiService.register(apiKey, User(_name.value!!, _email.value!!, _password.value!!))
+                val response = todoApiService.register(apiKey, User(userName.value!!, userEmail.value!!, userPassword.value!!))
                 sharedPreferences.saveUserinfo(response.userId)
                 sharedPreferences.saveToken(response.token)
                 onSuccess()
             } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.account_creation_error) + "${e.message}"
-                _showError.value = true
+                errorPayload.value = context.getString(R.string.account_creation_error) + "${e.message}"
+                throwError.value = true
                 onError(context.getString(R.string.account_creation_error) + "${e.message}")
             }
         }
