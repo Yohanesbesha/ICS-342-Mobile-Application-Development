@@ -59,7 +59,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.firebase.firestore.ktx)
     testImplementation(libs.junit)
+    testImplementation(libs.junit.jupiter)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -77,6 +79,27 @@ dependencies {
     implementation ("com.squareup.retrofit2:converter-moshi:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
+
+
+    // Unit testing dependencies
+    testImplementation (libs.junit)
+    testImplementation (libs.androidx.core.testing) // for InstantTaskExecutorRule
+    testImplementation (libs.kotlinx.coroutines.test) // for coroutine testing
+
+    testImplementation (libs.junit.jupiter.api)
+    testRuntimeOnly (libs.junit.jupiter.engine)
+
+
+    // MockK for unit testing
+    testImplementation (libs.mockk)// MockK library
+    testImplementation (libs.mockk.android) // MockK for Android components
+
+    testImplementation (libs.mockk.v1120)
+    testImplementation (libs.kotlinx.coroutines.test.v160)
+
+
+
+
 
 }
 

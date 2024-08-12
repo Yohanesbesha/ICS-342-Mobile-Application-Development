@@ -16,7 +16,7 @@ class TodoListViewModel @SuppressLint("StaticFieldLeak") constructor(
 ) : ViewModel() {
     private val apiKey = "13c0f85d-69c5-41d6-81c5-9192362305aa"
 
-    private val todosList = MutableLiveData<List<TodoItem>>()
+    val todosList = MutableLiveData<List<TodoItem>>()
     val todos: LiveData<List<TodoItem>> = todosList
 
     private val displayError = MutableLiveData(false)
@@ -38,10 +38,15 @@ class TodoListViewModel @SuppressLint("StaticFieldLeak") constructor(
             try {
                 val bToken = "Bearer " + sharedPreferences.getToken()
                 val userID = sharedPreferences.getUserID()
-                val todos = todoApiService.getTodos(bToken, userID!!, apiKey)
-                val todoList = todos.map { item ->
-                    val completed = item.completed == 1
-                    TodoItem(item.id, item.description, completed)
+                val todosResponse = todoApiService.getTodos(bToken, userID!!, apiKey)
+
+                // Map the TodoItemResponse to TodoItem
+                val todoList = todosResponse.map { response ->
+                    TodoItem(
+                        id = response.id,
+                        description = response.description,
+                        completed = response.completed == 1 // Assuming 1 means completed
+                    )
                 }
                 todosList.value = todoList
             } catch (e: Exception) {
@@ -50,6 +55,7 @@ class TodoListViewModel @SuppressLint("StaticFieldLeak") constructor(
             }
         }
     }
+
 
     fun addTodo(todo: TodoItem) {
         viewModelScope.launch {
@@ -71,11 +77,13 @@ class TodoListViewModel @SuppressLint("StaticFieldLeak") constructor(
             try {
                 val bToken = "Bearer " + sharedPreferences.getToken()
                 val userID = sharedPreferences.getUserID()
-                val todoID = todo.id
                 val updatedCompleted = !todo.completed
-                todoApiService.updateTodo(userID!!, todoID, apiKey, bToken, todo.copy(completed = updatedCompleted))
+                val updatedTodo = todo.copy(completed = updatedCompleted)
+                val result = todoApiService.updateTodo(userID!!, todo.id, apiKey, bToken, updatedTodo)
+
+                // Update the LiveData with the updated list
                 todosList.value = todosList.value?.map { item ->
-                    if (item.id == todoID) item.copy(completed = updatedCompleted) else item
+                    if (item.id == todo.id) result else item
                 }
             } catch (e: Exception) {
                 errorPayload.value = context.getString(R.string.failedUpdatedCheck) + "${e.message}"
@@ -83,4 +91,9 @@ class TodoListViewModel @SuppressLint("StaticFieldLeak") constructor(
             }
         }
     }
+
+
+
+
+
 }

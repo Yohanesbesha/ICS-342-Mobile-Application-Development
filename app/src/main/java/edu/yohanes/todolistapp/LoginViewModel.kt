@@ -47,6 +47,7 @@ class LoginViewModel(
         if (loginEmail.value.isNullOrBlank() || loginPassword.value.isNullOrBlank()) {
             loginErrorPayload.value = context.getString(R.string.empty_fields_error)
             loginError.value = true
+            onError(context.getString(R.string.empty_fields_error))
             return
         }
 

@@ -42,7 +42,8 @@ class MainActivity : ComponentActivity() {
                     composable("LoginScreen") {
                         LoginScreen(
                             onLoginSuccess = { navController.navigate("ToDoListScreen") },
-                            onCreateAccountClick = { navController.navigate("CreateAccountScreen") },
+                            onCreateAccountClick = { navController.navigate(
+                                "CreateAccountScreen") },
                             viewModel = loginViewModel
                         )
                     }
@@ -52,7 +53,8 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("CreateAccountScreen") {
                         CreateAccountScreen(
-                            onCreateAccountSuccess = { navController.navigate("ToDoListScreen") },
+                            onCreateAccountSuccess = { navController.navigate(
+                                "ToDoListScreen") },
                             onLoginClick = { navController.navigate("LoginScreen") },
                             viewModel = createAccountViewModel
                         )
